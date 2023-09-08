@@ -12,11 +12,11 @@
 #include<sys/termios.h>
 #include<sys/mman.h>
 
-/*
-    The LC-3 has (1<<16)=65536 memory locations each of which stores a 16-bit value
-*/
-#define MEMORY_MAX (1 << 16)
-uint16_t memory[MEMORY_MAX];
+// MEMORY MAPPED REGISTERS
+enum  {
+    MR_KBSR = 0xFE00, /* keyboard status */
+    MR_KBDR = 0xFE02 /* keyboard data */
+};
 
 // REGISTERS
 /*
@@ -96,11 +96,11 @@ enum {
     TRAP_HALT = 0x25   /* halt the program */
 };
 
-// MEMORY MAPPED REGISTERS
-enum  {
-    MR_KBSR = 0xFE00, /* keyboard status */
-    MR_KBDR = 0xFE02 /* keyboard data */
-};
+/*
+    The LC-3 has (1<<16)=65536 memory locations each of which stores a 16-bit value
+*/
+#define MEMORY_MAX (1 << 16)
+uint16_t memory[MEMORY_MAX];
 
 /* Input Buffering (?? wtf) */
 struct termios original_tio;
@@ -154,7 +154,7 @@ uint16_t sign_extend(uint16_t x, int bit_count) {
     */
 
    if ((x >> (bit_count - 1)) & 1) { // check if negative, a state that have left-most bit = 1
-        x != (0xFFFF << bit_count); // 0xFFFF = 1111 1111 1111 1111
+        x |= (0xFFFF << bit_count); // 0xFFFF = 1111 1111 1111 1111
    }
    return x;
 }
@@ -241,7 +241,6 @@ int main(int argc, const char *argv[]) {
         /* FETCH */
         uint16_t instr = mem_read(reg[R_PC] ++);
         uint16_t op = instr >> 12; /* remember the left 4 bits is for opcode*/
-
         switch (op) {
             case OP_ADD:
                 {
@@ -441,8 +440,6 @@ int main(int argc, const char *argv[]) {
                                 running = 0;
                             }
                             break;                        
-                        default:
-                            break;
                     }
                 }
                 break;
